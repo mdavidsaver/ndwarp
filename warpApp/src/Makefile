@@ -8,31 +8,19 @@ include $(TOP)/configure/CONFIG
 #=============================
 # Build the IOC application
 
-PROD_IOC = warp
-# warp.dbd will be created and installed
-DBD += warp.dbd
+LIBRARY += NDPluginWarp
 
-# warp.dbd will be made up from these files:
-warp_DBD += base.dbd
+DBD += NDPluginWarp.dbd
 
-# Include dbd files from all support applications:
-#warp_DBD += xxx.dbd
+# headers are not considered public
 
 # Add all the support libraries needed by this IOC
-#warp_LIBS += xxx
+NDPluginWarp_LIBS += NDPlugin ADBase asyn
 
-# warp_registerRecordDeviceDriver.cpp derives from warp.dbd
-warp_SRCS += warp_registerRecordDeviceDriver.cpp
-
-# Build the main IOC entry point on workstation OSs.
-warp_SRCS_DEFAULT += warpMain.cpp
-warp_SRCS_vxWorks += -nil-
-
-# Add support from base/src/vxWorks if needed
-#warp_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
+NDPluginWarp_SRCS += NDPluginWarp.cpp
 
 # Finally link to the EPICS Base libraries
-warp_LIBS += $(EPICS_BASE_IOC_LIBS)
+NDPluginWarp_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #===========================
 
