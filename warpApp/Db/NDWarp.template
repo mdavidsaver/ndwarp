@@ -1,0 +1,81 @@
+
+include "NDPluginBase.template"
+
+record(ai, "$(P)$(R)RunTime") {
+    field(DTYP, "asynFloat64")
+    field(INP , "@asyn($(PORT),0)WARP_RUN_TIME")
+    field(SCAN, "I/O Intr")
+    field(EGU , "s")
+    field(PREC, "6")
+}
+
+record(mbbo, "$(P)$(R)ModeInterp") {
+    field(DESC, "Interpolation mode")
+    field(DTYP, "asynInt32")
+    field(OUT , "@asyn($(PORT),0)WARP_INTERP_MODE")
+    field(PINI, "YES")
+    field(ZRVL, "0")
+    field(ONVL, "1")
+    field(ZRST, "Nearest")
+    field(ONST, "Bi-linear")
+    info(autosaveFields, "VAL")
+}
+
+record(mbbo, "$(P)$(R)ModeOut") {
+    field(DESC, "Output array")
+    field(DTYP, "asynInt32")
+    field(OUT , "@asyn($(PORT),0)WARP_OUTPUT_MODE")
+    field(PINI, "YES")
+    field(ZRVL, "0")
+    field(ONVL, "1")
+    field(TWVL, "2")
+    field(THVL, "3")
+    field(ZRST, "Image")
+    field(ONST, "Map dist")
+    field(TWST, "Map Y")
+    field(THST, "Map Y")
+    info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(R)Angle") {
+    field(DTYP, "asynFloat64")
+    field(OUT , "@asyn($(PORT),0)WARP_ANGLE")
+    field(PINI, "YES")
+    field(EGU , "deg.")
+    field(PREC, "2")
+    info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(R)FactorX") {
+    field(DTYP, "asynFloat64")
+    field(OUT , "@asyn($(PORT),0)WARP_FACTOR_X")
+    field(PINI, "YES")
+    field(EGU , "arb")
+    field(PREC, "3")
+    info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(R)FactorY") {
+    field(DTYP, "asynFloat64")
+    field(OUT , "@asyn($(PORT),0)WARP_FACTOR_Y")
+    field(PINI, "YES")
+    field(EGU , "arb")
+    field(PREC, "3")
+    info(autosaveFields, "VAL")
+}
+
+record(longout, "$(P)$(R)CenterX") {
+    field(DTYP, "asynInt32")
+    field(OUT , "@asyn($(PORT),0)WARP_CENTER_X")
+    field(PINI, "YES")
+    field(EGU , "px")
+    info(autosaveFields, "VAL")
+}
+
+record(longout, "$(P)$(R)CenterY") {
+    field(DTYP, "asynInt32")
+    field(OUT , "@asyn($(PORT),0)WARP_CENTER_Y")
+    field(PINI, "YES")
+    field(EGU , "px")
+    info(autosaveFields, "VAL")
+}

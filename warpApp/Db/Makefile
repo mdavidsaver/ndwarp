@@ -3,10 +3,7 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 
-#----------------------------------------------------
-# Create and install (or just install) into <top>/db
-# databases, templates, substitutions like this
-#DB += xxx.db
+DB += NDWarp.template
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add

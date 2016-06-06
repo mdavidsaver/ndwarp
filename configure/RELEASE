@@ -21,8 +21,10 @@
 
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
+ADEXAMPLE=/home/mdavidsaver/work.frib/areaDetector/ADExample
 ADCORE=/home/mdavidsaver/work.frib/areaDetector/ADCore
 ASYN=/home/mdavidsaver/dpack/asyn/asyn
+BUSY=/home/mdavidsaver/dpack/busy/busy
 
 # EPICS_BASE usually appears last so other apps can override stuff:
 EPICS_BASE=/home/mdavidsaver/work.bnl/pv/epics-base

@@ -22,15 +22,19 @@ DBD += test.dbd
 
 # test.dbd will be made up from these files:
 test_DBD += base.dbd
+test_DBD += asyn.dbd
+test_DBD += busySupport.dbd
 test_DBD += ADSupport.dbd
 test_DBD += NDPluginSupport.dbd
 test_DBD += NDPluginWarp.dbd
 
-# Include dbd files from all support applications:
-#test_DBD += xxx.dbd
+ifneq ($(ADEXAMPLE),)
+test_DBD += simDetectorSupport.dbd
+test_LIBS += simDetector
+endif
 
 # Add all the support libraries needed by this IOC
-test_LIBS += NDPluginWarp NDPlugin ADBase asyn
+test_LIBS += NDPluginWarp NDPlugin ADBase asyn busy
 
 # test_registerRecordDeviceDriver.cpp derives from test.dbd
 test_SRCS += test_registerRecordDeviceDriver.cpp
