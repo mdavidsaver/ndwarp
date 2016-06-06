@@ -32,6 +32,7 @@ NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCall
 
     createParam(NDWarpRunTimeString, asynParamFloat64, &NDWarpRunTime);
     createParam(NDWarpModeString, asynParamInt32, &NDWarpMode);
+    createParam(NDWarpOutputString, asynParamInt32, &NDWarpOutput);
 
     setIntegerParam(NDWarpMode, 0); // nearest neighbor
 
@@ -121,20 +122,62 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
             assert(mapping.size() == samp_per_pixel*lastinfo.nElements);
         }
 
-        ndarray_ptr output(cloneArray(pNDArrayPool, pArray));
+        int outputmode=0;
+        getIntegerParam(NDWarpOutput, &outputmode);
 
-        switch(pArray->dataType) {
+        ndarray_ptr output;
+
+        if(outputmode==0) {
+            // output transformed image
+
+            output.reset(cloneArray(pNDArrayPool, pArray));
+
+            switch(pArray->dataType) {
 #define CASE(TYPE) case ND ## TYPE: warpit<epics ## TYPE>(pArray, output.get(), &mapping[0], lastinfo.nElements, samp_per_pixel); break;
-        CASE(Int8)
-        CASE(UInt8)
-        CASE(Int16)
-        CASE(UInt16)
-        CASE(Int32)
-        CASE(UInt32)
-        CASE(Float32)
-        CASE(Float64)
+            CASE(Int8)
+            CASE(UInt8)
+            CASE(Int16)
+            CASE(UInt16)
+            CASE(Int32)
+            CASE(UInt32)
+            CASE(Float32)
+            CASE(Float64)
 #undef CASE
-            // no default: (error check is above) meant to trigger compiler warning if new types are added
+                    // no default: (error check is above) meant to trigger compiler warning if new types are added
+            }
+
+        } else if(outputmode>=1 && outputmode<=3) {
+            // output mapping distance, x, or y  (to help debug mappings)
+            size_t dims[2] = {lastmap.sizex(), lastmap.sizey()};
+
+            output.reset(pNDArrayPool->alloc(2, dims, NDFloat64, 0, NULL));
+            double *arr = (double*)output->pData;
+            NDArrayInfo_t info;
+            output->getInfo(&info);
+
+            for(size_t oy=0; oy<lastmap.sizey(); oy++) {
+                for(size_t ox=0; ox<lastmap.sizey(); ox++) {
+                    double ix = lastmap.x(ox, oy),
+                           iy = lastmap.y(ox, oy),
+                           dx = ox-ix,
+                           dy = oy-iy;
+
+                    double result = 0.0;
+
+                    switch(outputmode) {
+                    case 1: result = sqrt(dx*dx+dy*dy); break;
+                    case 2: result = dx; break;
+                    case 3: result = dy; break;
+                    }
+
+                    arr[ox*info.xStride + oy*info.yStride] = result;
+                }
+            }
+
+        } else {
+            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+                      "%s:: unknown output mode",
+                      this->portName);
         }
 
         epicsTimeStamp after;
@@ -142,7 +185,7 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
         double delta = epicsTimeDiffInSeconds(&after, &before);
         setDoubleParam(NDWarpRunTime, delta);
 
-        {
+        if(output.get()) {
             aPDUnlock U(*this);
             doCallbacksGenericPointer(output.get(), NDArrayData, 0);
         }
@@ -213,7 +256,7 @@ asynStatus NDPluginWarp::writeInt32(asynUser *pasynUser, epicsInt32 value)
     if(!ret) ret = setIntegerParam(addr, function, value);
 
     try {
-        if(ret) {
+        if(ret || function==NDWarpOutput) {
             // no-op
         } else if(function==NDWarpAxis
                   || function==NDWarpCenterX || function==NDWarpCenterY
@@ -283,6 +326,7 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
         }
     }
 
+    // interpolate and collapse user 2D Mapping to 1D 'mapping' (from offset to offset)
 
     Sample * const S = &mapping[0];
 
@@ -342,6 +386,8 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     }
         break;
     }
+
+    lastmap.swap(M);
 }
 
 void NDPluginWarp::fill_mapping(Mapping &M)

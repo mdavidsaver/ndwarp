@@ -12,11 +12,13 @@
 
 /* Param definitions */
 #define NDWarpRunTimeString    "WARP_RUN_TIME"
+#define NDWarpModeString       "WARP_INTERP_MODE"
+#define NDWarpOutputString     "WARP_OUTPUT_MODE"
+
 #define NDWarpAxisString       "WARP_AXIS"
 #define NDWarpFactorString     "WARP_FACTOR"
 #define NDWarpCenterXString    "WARP_CENTER_X"
 #define NDWarpCenterYString    "WARP_CENTER_Y"
-#define NDWarpModeString       "WARP_INTERP_MODE"
 
 /** Generic coordinate transformation
  *
@@ -58,6 +60,11 @@ public:
         size_t sizex() const { return yStride; }
         size_t sizey() const { return map.size()/yStride/2; }
 
+        void swap(Mapping& O) {
+            std::swap(yStride, O.yStride);
+            std::swap(map, O.map);
+        }
+
         size_t yStride;
         std::vector<double> map;
     };
@@ -76,6 +83,7 @@ public:
     mapping_t mapping; // size() is samp_per_pixel*listinfo.nElements
 
     NDArrayInfo lastinfo;
+    Mapping lastmap;
     enum mode_t {
         Nearest, Bilinear,
     } cur_mode;
@@ -83,6 +91,7 @@ public:
     int NDWarpRunTime;
 #define FIRST_NDPLUGIN_WARP_PARAM NDWarpRunTime
     int NDWarpMode;
+    int NDWarpOutput;
     int NDWarpAxis;
     int NDWarpFactor;
     int NDWarpCenterX;
