@@ -1,3 +1,9 @@
+/*
+ * This software is Copyright by the Board of Trustees of Michigan
+ * State University (c) Copyright 2016.
+ *
+ * Author: Michael Davidsaver <mdavidsaver@gmail.com>
+ */
 #include <sstream>
 
 #include <epicsUnitTest.h>
