@@ -309,34 +309,34 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
         for(size_t j=0; j<M.sizey(); j++) {
 
             for(size_t i=0; i<M.sizex(); i++) {
-                const size_t Ooffset = samp_per_pixel*(i*lastinfo.xStride + j*lastinfo.yStride);
+                const size_t Ooffset = 4*(i*lastinfo.xStride + j*lastinfo.yStride);
                 Sample * const SX = &S[Ooffset];
 
                 double x=M.x(i,j), y=M.y(i,j),
                        fx=floor(x), fy=floor(y),
-                       cx=ceil(x), cy=ceil(y);
-                //double xmod = fmod(x, 1.0);
-                //double ymod = fmod(x, 1.0);
+                       cx=ceil(x), cy=ceil(y),
+                       xfact = cx==fx ? 0.0 : (x-fx)/(cx-fx),
+                       yfact = cy==fy ? 0.0 : (y-fy)/(cy-fy);
+
+                // for degenerate cases (f_==c_) then
+                // _fact=0.0 or 1.0 gives the same result.
+                // we choose 0.0 arbitrarily
 
                 // should be sanitized above
                 assert(cx < M.sizex());
                 assert(cy < M.sizey());
 
-                size_t Ioffset = fx*lastinfo.xStride + fy*lastinfo.yStride;
-                SX[0].weight = 0.25; //TODO: bias by xmod/ymod
-                SX[0].index = Ioffset;
+                SX[0].weight = (1.0-xfact)*(1.0-yfact);
+                SX[0].index  = fx*lastinfo.xStride + fy*lastinfo.yStride;
 
-                Ioffset = cx*lastinfo.xStride + fy*lastinfo.yStride;
-                SX[1].weight = 0.25;
-                SX[1].index = Ioffset;
+                SX[1].weight = xfact*(1.0-yfact);
+                SX[1].index  = cx*lastinfo.xStride + fy*lastinfo.yStride;
 
-                Ioffset = fx*lastinfo.xStride + cy*lastinfo.yStride;
-                SX[2].weight = 0.25;
-                SX[2].index = Ioffset;
+                SX[2].weight = (1.0-xfact)*yfact;
+                SX[2].index  = fx*lastinfo.xStride + cy*lastinfo.yStride;
 
-                Ioffset = cx*lastinfo.xStride + cy*lastinfo.yStride;
-                SX[3].weight = 0.25;
-                SX[3].index = Ioffset;
+                SX[3].weight = xfact*yfact;
+                SX[3].index  = cx*lastinfo.xStride + cy*lastinfo.yStride;
             }
         }
     }
