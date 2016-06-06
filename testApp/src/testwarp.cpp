@@ -94,7 +94,7 @@ void arrcmp(const T* lhs, size_t lhs_count, const T* rhs, size_t rhs_count)
     }
 }
 
-void testMirror()
+void testRotate()
 {
     static const std::string name(__FUNCTION__);
     static const epicsUInt16 input[9] = {
@@ -102,15 +102,10 @@ void testMirror()
         4, 5, 6,
         7, 8, 9
     };
-    static const epicsUInt16 expectx[9] = {
-        3, 2, 1,
-        6, 5, 4,
-        9, 8, 7
-    };
-    static const epicsUInt16 expecty[9] = {
-        7, 8, 9,
-        4, 5, 6,
-        1, 2, 3
+    static const epicsUInt16 expect90[9] = {
+        3, 6, 9,
+        2, 5, 8,
+        1, 4, 7
     };
 
     testDiag("In %s", __FUNCTION__);
@@ -133,7 +128,7 @@ void testMirror()
     testDiag("Input array");
     showArray<epicsUInt16>(inp.get());
 
-    testDiag("flip vertical transform");
+    testDiag("no-op transform");
     {
         aPDLock G(*P);
         P->processCallbacks(inp.get());
@@ -159,15 +154,15 @@ void testMirror()
         testEqual(A->dims[0].size, 3u);
         testEqual(A->dims[1].size, 3u);
         testEqual(A->dataType, NDUInt16);
-        arrcmp(expectx, NELEMENTS(expectx), (epicsUInt16*)A->pData, info.nElements);
+        arrcmp(input, NELEMENTS(input), (epicsUInt16*)A->pData, info.nElements);
     }
 
     {
-        asynInt32Client M(P->portName, 0, NDWarpAxisString);
-        M.write(1);
+        asynFloat64Client M(P->portName, 0, NDWarpAngleString);
+        M.write(90.0);
     }
 
-    testDiag("flip horizontal transform");
+    testDiag("Rotate 90 deg. transform");
     {
         aPDLock G(*P);
         P->processCallbacks(inp.get());
@@ -187,7 +182,7 @@ void testMirror()
         testEqual(A->dims[0].size, 3u);
         testEqual(A->dims[1].size, 3u);
         testEqual(A->dataType, NDUInt16);
-        arrcmp(expecty, NELEMENTS(expecty), (epicsUInt16*)A->pData, info.nElements);
+        arrcmp(expect90, NELEMENTS(expect90), (epicsUInt16*)A->pData, info.nElements);
     }
 }
 
@@ -197,7 +192,7 @@ MAIN(testwarp)
 {
     testPlan(0);
     pool = new NDArrayPool(5, 1024);
-    testMirror();
+    testRotate();
     // don't bother to delete 'pool', it doesn't cleanup after itself anyway (no dtor)
     return testDone();
 }

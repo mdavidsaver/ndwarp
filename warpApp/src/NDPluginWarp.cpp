@@ -13,6 +13,9 @@
 
 #include <NDPluginWarp.h>
 
+// pi/180
+#define PI_180 0.017453292519943295
+
 static
 bool sameShape(const NDArrayInfo& lhs, const NDArrayInfo& rhs)
 {
@@ -41,14 +44,19 @@ NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCall
 
     setIntegerParam(NDWarpMode, 0); // nearest neighbor
 
-    createParam(NDWarpAxisString, asynParamInt32, &NDWarpAxis);
-    createParam(NDWarpFactorString, asynParamFloat64, &NDWarpFactor);
+    createParam(NDWarpAngleString, asynParamFloat64, &NDWarpAngle);
+    createParam(NDWarpFactorXString, asynParamFloat64, &NDWarpFactorX);
+    createParam(NDWarpFactorYString, asynParamFloat64, &NDWarpFactorY);
     createParam(NDWarpCenterXString, asynParamInt32, &NDWarpCenterX);
     createParam(NDWarpCenterYString, asynParamInt32, &NDWarpCenterY);
 
     setStringParam(NDPluginDriverPluginType, "NDPluginWarp");
 
-    setDoubleParam(NDWarpFactor, 0.0); // initialize w/ no-op
+    setDoubleParam(NDWarpFactorX, 0.0); // initialize w/ no-op
+    setDoubleParam(NDWarpFactorY, 0.0);
+    setDoubleParam(NDWarpAngle, 0.0);
+    setIntegerParam(NDWarpCenterX, 0);
+    setIntegerParam(NDWarpCenterY, 0);
 }
 
 NDPluginWarp::~NDPluginWarp() {
@@ -221,15 +229,8 @@ asynStatus NDPluginWarp::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
     if(!ret) ret = setDoubleParam(addr, function, value);
 
     try {
-        if(ret) {
-            // no-op
-        } else if(function==NDWarpFactor) {
+        if(ret==asynSuccess) {
             lastinfo.nElements = (size_t)-1; // spoil
-        } else {
-            ret = asynError;
-            epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
-                          "%s:: status=%d, addr=%d function=%d, value=%g : Write to read-only parameter",
-                          __PRETTY_FUNCTION__, ret, addr, function, value);
         }
     }catch(std::exception& e) {
         ret = asynError;
@@ -261,17 +262,8 @@ asynStatus NDPluginWarp::writeInt32(asynUser *pasynUser, epicsInt32 value)
     if(!ret) ret = setIntegerParam(addr, function, value);
 
     try {
-        if(ret || function==NDWarpOutput) {
-            // no-op
-        } else if(function==NDWarpAxis
-                  || function==NDWarpCenterX || function==NDWarpCenterY
-                  || function==NDWarpMode) {
+        if(ret==asynSuccess) {
             lastinfo.nElements = (size_t)-1; // spoil
-        } else {
-            ret = asynError;
-            epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
-                          "%s:: status=%d, addr=%d function=%d, value=%d : Write to read-only parameter",
-                          __PRETTY_FUNCTION__, ret, addr, function, value);
         }
     }catch(std::exception& e) {
         ret = asynError;
@@ -397,24 +389,37 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
 
 void NDPluginWarp::fill_mapping(Mapping &M)
 {
-    double factor = 0.0;
+    double angle = 0.0;
+    double factor[2] = {0.0, 0.0};
     int center[2] = {0, 0};
-    int axis = 0;
 
-    getIntegerParam(NDWarpAxis, &axis);
+    getDoubleParam(NDWarpAngle, &angle);
     getIntegerParam(NDWarpCenterX, &center[0]);
     getIntegerParam(NDWarpCenterY, &center[1]);
-    getDoubleParam(NDWarpFactor, &factor);
-    //printf("# fill_mapping w/ %d about %d x %d\n", axis, center[0], center[1]);
+    getDoubleParam(NDWarpFactorX, &factor[0]);
+    getDoubleParam(NDWarpFactorY, &factor[1]);
+//    printf("# fill_mapping. center: [%d, %d] angle: %f F: [%f, %f]\n",
+//           center[0], center[1], angle, factor[0], factor[1]);
+
+    const double sina=sin(angle*PI_180), cosa=cos(angle*PI_180);
 
     // iterate through output image coordinates.
     // fill in each with input image coordinate
     for(epicsUInt16 x=0; x<M.sizex(); x++) {
         for(epicsUInt16 y=0; y<M.sizey(); y++) {
-            epicsInt32 xc = x-center[0];
-            epicsInt32 yc = y-center[1];
-            xc = axis==0 ? -xc :  xc;
-            yc = axis==0 ?  yc : -yc;
+            double xc = x-center[0];
+            double yc = y-center[1];
+
+            // rotation about center point (Z axis)
+            double temp = xc;
+            xc =  xc*cosa - yc*sina;
+            yc =  temp*sina + yc*cosa;
+
+            // "keystone" correction (rotation about X and/or Y axis)
+            temp = xc;
+            xc += xc*xc*factor[0]   + xc*yc*factor[1];
+            yc += yc*temp*factor[0] + yc*yc*factor[1];
+
             M.x(x,y) = xc+center[0];
             M.y(x,y) = yc+center[1];
         }

@@ -21,8 +21,9 @@
 #define NDWarpModeString       "WARP_INTERP_MODE"
 #define NDWarpOutputString     "WARP_OUTPUT_MODE"
 
-#define NDWarpAxisString       "WARP_AXIS"
-#define NDWarpFactorString     "WARP_FACTOR"
+#define NDWarpAngleString      "WARP_ANGLE"
+#define NDWarpFactorXString    "WARP_FACTOR_X"
+#define NDWarpFactorYString    "WARP_FACTOR_Y"
 #define NDWarpCenterXString    "WARP_CENTER_X"
 #define NDWarpCenterYString    "WARP_CENTER_Y"
 
@@ -98,8 +99,9 @@ public:
 #define FIRST_NDPLUGIN_WARP_PARAM NDWarpRunTime
     int NDWarpMode;
     int NDWarpOutput;
-    int NDWarpAxis;
-    int NDWarpFactor;
+    int NDWarpAngle;
+    int NDWarpFactorX;
+    int NDWarpFactorY;
     int NDWarpCenterX;
     int NDWarpCenterY;
 
