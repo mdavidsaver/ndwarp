@@ -41,3 +41,4 @@ dbpf "$(PREFIX)image1:EnableCallbacks" "Enable"
 
 dbpf "$(PREFIX)warp1:CenterX" "1000"
 dbpf "$(PREFIX)warp1:CenterY" "850"
+dbpf "$(PREFIX)cam1:AcquirePeriod" "0.1"
