@@ -107,6 +107,11 @@ void testRotate()
         2, 5, 8,
         1, 4, 7
     };
+    static const epicsUInt16 expect45[9] = {
+        0, 3, 0,
+        1, 5, 9,
+        0, 7, 0
+    };
 
     testDiag("In %s", __FUNCTION__);
     NDPluginWarp *P = new NDPluginWarp((name+"warp").c_str(), 2, 1, "", 0, 10, 1024, 0, 0);
@@ -157,12 +162,12 @@ void testRotate()
         arrcmp(input, NELEMENTS(input), (epicsUInt16*)A->pData, info.nElements);
     }
 
+    testDiag("Rotate 90 deg. transform");
     {
         asynFloat64Client M(P->portName, 0, NDWarpAngleString);
         M.write(90.0);
     }
 
-    testDiag("Rotate 90 deg. transform");
     {
         aPDLock G(*P);
         P->processCallbacks(inp.get());
@@ -183,6 +188,34 @@ void testRotate()
         testEqual(A->dims[1].size, 3u);
         testEqual(A->dataType, NDUInt16);
         arrcmp(expect90, NELEMENTS(expect90), (epicsUInt16*)A->pData, info.nElements);
+    }
+
+    testDiag("Rotate 45 deg. transform");
+    {
+        asynFloat64Client M(P->portName, 0, NDWarpAngleString);
+        M.write(45.0);
+    }
+
+    {
+        aPDLock G(*P);
+        P->processCallbacks(inp.get());
+    }
+
+    testOk(!!L.last.get(), "Result %p", L.last.get());
+    if(!L.last.get()) {
+        testSkip(5, "No output");
+    } else {
+        NDArray *A = L.last.get();
+        testDiag("Output array");
+        showArray<epicsUInt16>(A);
+
+        NDArrayInfo_t info;
+        A->getInfo(&info);
+        testEqual(A->ndims, 2);
+        testEqual(A->dims[0].size, 3u);
+        testEqual(A->dims[1].size, 3u);
+        testEqual(A->dataType, NDUInt16);
+        arrcmp(expect45, NELEMENTS(expect45), (epicsUInt16*)A->pData, info.nElements);
     }
 }
 

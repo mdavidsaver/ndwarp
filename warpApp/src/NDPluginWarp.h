@@ -79,6 +79,7 @@ public:
     struct Sample {
         double weight;
         size_t index;
+        bool valid;
         Sample() :weight(1.0), index(0) {}
     };
 

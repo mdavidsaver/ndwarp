@@ -5,6 +5,7 @@
  * Author: Michael Davidsaver <mdavidsaver@gmail.com>
  */
 #include <algorithm>
+#include <limits>
 
 #include <epicsMath.h>
 
@@ -77,9 +78,13 @@ void warpit(NDArray *atemp,
 
     for(; O<OE; O++) {
         double val = 0.0;
+        bool valid = true;
         for(unsigned j=0; j<samp_per_pixel; j++, S++) {
-            val += S->weight * I[S->index];
+            valid &= S->valid;
+            if(S->valid)
+                val += S->weight * I[S->index];
         }
+        if(!valid) val = 0.0;
         *O = (T)val;
     }
 
@@ -303,23 +308,17 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     fill_mapping(M);
 
     // sanitize mapping
-    // clip to range [0, size-1]
+    // replace outside range [0, size-1] with NaN
     for(size_t j=0; j<M.sizey(); j++) {
 
         for(size_t i=0; i<M.sizex(); i++) {
-            double x=M.x(i,j);
+            double x=M.x(i,j), y=M.y(i,j);
 
-            if(x>=M.sizex()-1)  // handles +inf
-                M.x(i,j) = M.sizex()-1;
-            else if(x<0.0 || !isfinite(x)) // handles -inf and nan
-                M.x(i,j) = 0.0;
+            if(x>M.sizex()-1 || x<0.0 || !isfinite(x))
+                M.x(i,j) = std::numeric_limits<double>::quiet_NaN();
 
-            double y=M.y(i,j);
-
-            if(y<0.0 || !isfinite(y))
-                M.y(i,j) = 0.0;
-            else if(y>=M.sizey()-1)
-                M.y(i,j) = M.sizey()-1;
+            if(y>M.sizey()-1 || y<0.0 || !isfinite(y))
+                M.y(i,j) = std::numeric_limits<double>::quiet_NaN();
         }
     }
 
@@ -335,12 +334,14 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
             for(size_t i=0; i<M.sizex(); i++) {
                 const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride;
                 Sample * const SX = &S[Ooffset];
+                double x=round(M.x(i,j)), y=round(M.y(i,j));
 
-                const size_t Ioffset = round(M.x(i,j))*lastinfo.xStride
-                                     + round(M.y(i,j))*lastinfo.yStride;
+                const size_t Ioffset = x*lastinfo.xStride
+                                     + y*lastinfo.yStride;
 
                 SX->weight = 1.0;
                 SX->index = Ioffset;
+                SX->valid = isfinite(x) && isfinite(y);
             }
         }
     }
@@ -358,26 +359,27 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
                        cx=ceil(x), cy=ceil(y),
                        xfact = cx==fx ? 0.0 : (x-fx)/(cx-fx),
                        yfact = cy==fy ? 0.0 : (y-fy)/(cy-fy);
+                bool valid = isfinite(x) && isfinite(y);
 
                 // for degenerate cases (f_==c_) then
                 // _fact=0.0 or 1.0 gives the same result.
                 // we choose 0.0 arbitrarily
 
-                // should be sanitized above
-                assert(cx < M.sizex());
-                assert(cy < M.sizey());
-
                 SX[0].weight = (1.0-xfact)*(1.0-yfact);
                 SX[0].index  = fx*lastinfo.xStride + fy*lastinfo.yStride;
+                SX[0].valid  = valid;
 
                 SX[1].weight = xfact*(1.0-yfact);
                 SX[1].index  = cx*lastinfo.xStride + fy*lastinfo.yStride;
+                SX[1].valid  = valid;
 
                 SX[2].weight = (1.0-xfact)*yfact;
                 SX[2].index  = fx*lastinfo.xStride + cy*lastinfo.yStride;
+                SX[2].valid  = valid;
 
                 SX[3].weight = xfact*yfact;
                 SX[3].index  = cx*lastinfo.xStride + cy*lastinfo.yStride;
+                SX[3].valid  = valid;
             }
         }
     }
