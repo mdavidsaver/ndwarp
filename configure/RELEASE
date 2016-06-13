@@ -21,7 +21,11 @@
 
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
+# Optional (for executable in testApp)
+ARAVISGIGE=/home/mdavidsaver/work.frib/areaDetector/aravisGigE
 ADEXAMPLE=/home/mdavidsaver/work.frib/areaDetector/ADExample
+
+# required
 ADCORE=/home/mdavidsaver/work.frib/areaDetector/ADCore
 ASYN=/home/mdavidsaver/dpack/asyn/asyn
 BUSY=/home/mdavidsaver/dpack/busy/busy

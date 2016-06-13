@@ -33,6 +33,12 @@ test_DBD += simDetectorSupport.dbd
 test_LIBS += simDetector
 endif
 
+ifneq ($(ARAVISGIGE),)
+test_DBD += aravisCameraSupport.dbd
+test_LIBS += aravisCamera
+USR_LDFLAGS += $(shell pkg-config --libs glib-2.0 aravis-0.4)
+endif
+
 # Add all the support libraries needed by this IOC
 test_LIBS += NDPluginWarp NDPlugin ADBase asyn busy
 
