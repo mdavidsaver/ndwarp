@@ -6,11 +6,20 @@ include $(TOP)/configure/CONFIG
 ifneq ($(ADEXAMPLE),)
 DB_INSTALLS += $(ADEXAMPLE)/db/simDetector.template
 endif
+ifneq ($(ARAVISGIGE),)
+DB_INSTALLS += $(ARAVISGIGE)/db/aravisCamera.template
+DB_INSTALLS += $(ARAVISGIGE)/db/Basler_acA1600_20gm.template
+endif
 DB_INSTALLS += $(ADCORE)/db/ADBase.template
 DB_INSTALLS += $(ADCORE)/db/NDArrayBase.template
 DB_INSTALLS += $(ADCORE)/db/NDPluginBase.template
 DB_INSTALLS += $(ADCORE)/db/NDStats.template
 DB_INSTALLS += $(ADCORE)/db/NDStdArrays.template
+DB_INSTALLS += $(ADCORE)/db/NDROI.template
+DB_INSTALLS += $(ADCORE)/db/NDROIStat.template
+DB_INSTALLS += $(ADCORE)/db/NDROIStatN.template
+DB_INSTALLS += $(ADCORE)/db/NDOverlay.template
+DB_INSTALLS += $(ADCORE)/db/NDOverlayN.template
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
