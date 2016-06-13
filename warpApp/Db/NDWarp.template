@@ -51,7 +51,7 @@ record(ao, "$(P)$(R)FactorX") {
     field(OUT , "@asyn($(PORT),0)WARP_FACTOR_X")
     field(PINI, "YES")
     field(EGU , "arb")
-    field(PREC, "3")
+    field(PREC, "6")
     info(autosaveFields, "VAL")
 }
 
@@ -60,7 +60,7 @@ record(ao, "$(P)$(R)FactorY") {
     field(OUT , "@asyn($(PORT),0)WARP_FACTOR_Y")
     field(PINI, "YES")
     field(EGU , "arb")
-    field(PREC, "3")
+    field(PREC, "6")
     info(autosaveFields, "VAL")
 }
 
