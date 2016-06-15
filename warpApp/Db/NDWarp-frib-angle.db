@@ -1,0 +1,65 @@
+record(ao, "$(N)MMdPX_CSET") {
+    field(DESC, "mm per pixel")
+    field(EGU , "mm/px")
+    field(PREC, "6")
+    field(VAL , "0.00585")
+    field(FLNK, "$(N)M0_RSET")
+    info(autosaveFields, "VAL PREC")
+}
+record(ao, "$(N)LPHY_CSET") {
+    field(DESC, "Physical length")
+    field(EGU , "mm")
+    field(PREC, "3")
+    field(VAL , "77")
+    field(FLNK, "$(N)M0_RSET")
+    info(autosaveFields, "VAL PREC")
+}
+record(ao, "$(N)LPX_CSET") {
+    field(DESC, "Image Length")
+    field(EGU , "px")
+    field(FLNK, "$(N)LPX2_CSET")
+    info(autosaveFields, "VAL PREC")
+}
+record(calc, "$(N)LPX2_CSET") {
+    field(INPA, "$(N)LPX_CSET")
+    field(CALC, "A/2")
+    field(FLNK, "$(N)M0_RSET")
+}
+
+record(calc, "$(N)M0_RSET") {
+    field(INPA, "$(N)MMdPX_CSET NPP")
+    field(INPB, "$(N)LPHY_CSET NPP")
+    field(INPC, "$(N)LPX_CSET NPP")
+    field(CALC, "C*A/B") # (mm/px)*(px)/(mm) -> dimensionless
+    field(PREC, "6")
+    field(FLNK, "$(N)FACT_RSET")
+}
+
+record(ao, "$(N)ANGLE_CSET") {
+    field(EGU , "deg.")
+    field(PREC, "3")
+    field(FLNK, "$(N)FACT_RSET")
+    info(autosaveFields, "VAL PREC")
+}
+record(ao, "$(N)LFOC_CSET") {
+    field(DESC, "Focal length")
+    field(EGU , "mm")
+    field(PREC, "3")
+    field(VAL , "16")
+    field(FLNK, "$(N)FACT_RSET")
+    info(autosaveFields, "VAL PREC")
+}
+
+record(calcout, "$(N)FACT_RSET") {
+    field(OUT , "$(P)$(R)FactorX PP")
+    field(INPA, "$(N)ANGLE_CSET")
+    field(INPB, "$(N)M0_RSET")
+    field(INPC, "$(N)LFOC_CSET")
+    field(INPD, "$(N)MMdPX_CSET NPP")
+    # F reserved
+    field(CALC, "F:=tan(D2R*A);F/sqrt(B*F**2+1)/(C/D)")
+    field(PREC, "6")
+    field(IVOA, "Set output to IVOV")
+    field(IVOV, "0")
+    info(autosaveFields, "OUT CALC")
+}

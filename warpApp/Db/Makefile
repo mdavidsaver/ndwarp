@@ -4,6 +4,7 @@ include $(TOP)/configure/CONFIG
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 
 DB += NDWarp.template
+DB += NDWarp-frib-angle.db
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
