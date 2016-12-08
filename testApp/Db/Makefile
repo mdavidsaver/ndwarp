@@ -6,6 +6,10 @@ include $(TOP)/configure/CONFIG
 ifneq ($(ADEXAMPLE),)
 DB_INSTALLS += $(ADEXAMPLE)/db/simDetector.template
 endif
+ifneq ($(ARAVISGIGE),)
+DB_INSTALLS += $(ARAVISGIGE)/db/aravisCamera.template
+DB_INSTALLS += $(ARAVISGIGE)/db/TIS_dmk_33GX174.template
+endif
 DB_INSTALLS += $(ADCORE)/db/ADBase.template
 DB_INSTALLS += $(ADCORE)/db/NDArrayBase.template
 DB_INSTALLS += $(ADCORE)/db/NDPluginBase.template

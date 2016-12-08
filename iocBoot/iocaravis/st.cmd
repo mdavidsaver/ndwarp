@@ -16,7 +16,7 @@ epicsEnvSet("YSIZE",  "1500")
 epicsEnvSet("NCHANS", "2048")
 
 # libaravis amera name (use arv-tool to list accessible cameras)
-epicsEnvSet("ARVCAM", "The Imaging Source Europe GmbH-43510084")
+epicsEnvSet("ARVCAM", "The Imaging Source Europe GmbH-39510105")
 
 epicsEnvSet("EPICS_DB_INCLUDE_PATH", "../../db")
 
@@ -24,7 +24,8 @@ dbLoadDatabase("../../dbd/test.dbd")
 test_registerRecordDeviceDriver(pdbbase) 
 
 aravisCameraConfig("$(PORT)", "$(ARVCAM)")
-dbLoadRecords("$(ARAVISGIGE)/db/aravisCamera.template", "P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
+dbLoadRecords("aravisCamera.template", "P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
+dbLoadRecords("TIS_dmk_33GX174.template", "P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
 
 NDWarpConfigure("Warp1", 3, 0, "$(PORT)", 0)
 dbLoadRecords("NDWarp.template","P=$(PREFIX),R=warp1:,PORT=Warp1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT)")

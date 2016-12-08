@@ -22,16 +22,17 @@
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 # Optional (for executable in testApp)
-ARAVISGIGE=/home/mdavidsaver/work.frib/areaDetector/aravisGigE
-ADEXAMPLE=/home/mdavidsaver/work.frib/areaDetector/ADExample
+ARAVISGIGE=$(EPICS_BASE)
+#ADEXAMPLE=$(EPICS_BASE)
 
 # required
-ADCORE=/home/mdavidsaver/work.frib/areaDetector/ADCore
-ASYN=/home/mdavidsaver/dpack/asyn/asyn
-BUSY=/home/mdavidsaver/dpack/busy/busy
+ADCORE=$(EPICS_BASE)
+ASYN=$(EPICS_BASE)
+BUSY=$(EPICS_BASE)
+CALC=$(EPICS_BASE)
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/home/mdavidsaver/work.bnl/pv/epics-base
+EPICS_BASE=/usr/lib/epics
 
 # Set RULES here if you want to take build rules from somewhere
 # other than EPICS_BASE:
