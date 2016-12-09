@@ -16,6 +16,16 @@ DB_INSTALLS += $(ADCORE)/db/NDPluginBase.template
 DB_INSTALLS += $(ADCORE)/db/NDStats.template
 DB_INSTALLS += $(ADCORE)/db/NDStdArrays.template
 
+DB_INSTALLS += $(ADCORE)/db/NDStats.template
+DB_INSTALLS += $(ADCORE)/db/NDFile.template
+DB_INSTALLS += $(ADCORE)/db/NDFileTIFF.template
+DB_INSTALLS += $(ADCORE)/db/NDROI.template
+DB_INSTALLS += $(ADCORE)/db/NDROIStat.template
+DB_INSTALLS += $(ADCORE)/db/NDROIStatN.template
+DB_INSTALLS += $(ADCORE)/db/NDProcess.template
+DB_INSTALLS += $(ADCORE)/db/NDOverlay.template
+DB_INSTALLS += $(ADCORE)/db/NDOverlayN.template
+
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
 # <anyname>_template = <templatename>
