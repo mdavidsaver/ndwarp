@@ -26,6 +26,13 @@ DB_INSTALLS += $(ADCORE)/db/NDProcess.template
 DB_INSTALLS += $(ADCORE)/db/NDOverlay.template
 DB_INSTALLS += $(ADCORE)/db/NDOverlayN.template
 
+ifneq ($(DEVIOCSTATS),)
+DB_INSTALLS += $(DEVIOCSTATS)/db/iocAdminSoft.db
+endif
+ifneq ($(AUTOSAVE),)
+DB_INSTALLS += $(AUTOSAVE)/db/save_restoreStatus.db
+endif
+
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
 # <anyname>_template = <templatename>
@@ -33,4 +40,3 @@ DB_INSTALLS += $(ADCORE)/db/NDOverlayN.template
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
-

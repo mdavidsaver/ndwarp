@@ -44,6 +44,16 @@ PROD_NAME = test
 
 include $(ADCORE)/configure/commonDriverMakefile
 
+ifneq ($(CAPUTLOG),)
+test_DBD += caPutLog.dbd
+test_LIBS += caPutLog
+endif
+
+ifneq ($(RECSYNC),)
+test_DBD += reccaster.dbd
+test_LIBS += reccaster
+endif
+
 #===========================
 
 include $(TOP)/configure/RULES
