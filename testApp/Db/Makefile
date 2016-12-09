@@ -14,13 +14,7 @@ endif
 DB_INSTALLS += $(ADCORE)/db/ADBase.template
 DB_INSTALLS += $(ADCORE)/db/NDArrayBase.template
 DB_INSTALLS += $(ADCORE)/db/NDPluginBase.template
-DB_INSTALLS += $(ADCORE)/db/NDStats.template
 DB_INSTALLS += $(ADCORE)/db/NDStdArrays.template
-DB_INSTALLS += $(ADCORE)/db/NDROI.template
-DB_INSTALLS += $(ADCORE)/db/NDROIStat.template
-DB_INSTALLS += $(ADCORE)/db/NDROIStatN.template
-DB_INSTALLS += $(ADCORE)/db/NDOverlay.template
-DB_INSTALLS += $(ADCORE)/db/NDOverlayN.template
 
 DB_INSTALLS += $(ADCORE)/db/NDStats.template
 DB_INSTALLS += $(ADCORE)/db/NDFile.template

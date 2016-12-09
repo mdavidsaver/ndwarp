@@ -31,7 +31,7 @@ NDWarpConfigure("WARP1", 3, 0, "$(PORT)", 0)
 dbLoadRecords("NDWarp.template","P=$(PREFIX),R=warp1:,PORT=WARP1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT)")
 dbLoadRecords("NDWarp-frib-angle.db", "N=$(PREFIX)warp1:,P=$(PREFIX),R=warp1:")
 
-# Create 4 ROI plugins
+NDStdArraysConfigure("Image1", 3, 0, "$(PORT)", 0)
 dbLoadRecords("NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=Warp1,TYPE=Int16,FTVL=SHORT,NELEMENTS=3000000")
 
 #- From commonPlugins.cmd
@@ -75,7 +75,7 @@ dbLoadRecords("save_restoreStatus.db", "P=$(PREFIX)")
 
 iocInit()
 
-dbpf "$(PREFIX)cam1:LEFTSHIFT" "No"
+#dbpf "$(PREFIX)cam1:LEFTSHIFT" "No"
 
 dbpf "$(PREFIX)cam1:ImageMode" "Single"
 dbpf "$(PREFIX)cam1:ArrayCallbacks" "Enable"
