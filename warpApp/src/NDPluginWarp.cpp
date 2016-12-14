@@ -432,9 +432,8 @@ extern "C" int NDWarpConfigure(const char *portName, int queueSize, int blocking
                                 const char *NDArrayPort, int NDArrayAddr,
                                 int maxBuffers, size_t maxMemory)
 {
-    new NDPluginWarp(portName, queueSize, blockingCallbacks, NDArrayPort, NDArrayAddr,
-                     maxBuffers, maxMemory, 0, 2000000);
-    return(asynSuccess);
+    return (new NDPluginWarp(portName, queueSize, blockingCallbacks, NDArrayPort, NDArrayAddr,
+                     maxBuffers, maxMemory, 0, 2000000))->start();
 }
 
 /* EPICS iocsh shell commands */
