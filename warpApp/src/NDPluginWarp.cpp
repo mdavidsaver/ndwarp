@@ -66,47 +66,24 @@ NDPluginWarp::~NDPluginWarp() {
 
 namespace {
 template<typename T>
-void warpit(NDArray * __restrict__ atemp,
-            NDArray * __restrict__ output,
-            const NDPluginWarp::Sample * __restrict__ S,
+void warpit(NDArray *atemp,
+            NDArray *output,
+            const NDPluginWarp::Sample *S,
             size_t nElements,
             unsigned samp_per_pixel)
 {
-    const T * __restrict__ const I = (const T*)atemp->pData;
-    T       * __restrict__       O = (T*)output->pData,
+    const T * const  I = (const T*)atemp->pData;
+    T       *        O = (T*)output->pData,
             * const OE = O+nElements;
 
     for(; O<OE; O++) {
-        __builtin_prefetch(O, 1, 3);
-        __builtin_prefetch(S, 0, 3);
-
         double val = 0.0;
         bool valid = true;
-        switch(samp_per_pixel) {
-        case 4:
-            if(S->valid) {
-                valid = true;
+        for(unsigned j=0; j<samp_per_pixel; j++, S++) {
+            valid &= S->valid;
+            if(S->valid)
                 val += S->weight * I[S->index];
-            }
-            S++;
-            if(S->valid) {
-                valid = true;
-                val += S->weight * I[S->index];
-            }
-            S++;
-            if(S->valid) {
-                valid = true;
-                val += S->weight * I[S->index];
-            }
-            S++;
-        case 1:
-            if(S->valid) {
-                valid = true;
-                val += S->weight * I[S->index];
-            }
-            S++;
         }
-
         if(!valid) val = 0.0;
         *O = (T)val;
     }
