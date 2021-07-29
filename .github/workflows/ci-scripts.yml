@@ -1,0 +1,78 @@
+name: ADAravis
+
+# Trigger on pushes and PRs to any branch
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+  pull_request:
+
+env:
+  SETUP_PATH: .ci-local
+
+jobs:
+  test:
+    name: ${{ matrix.os }}/${{ matrix.base }}/${{ matrix.cmp }}/${{ matrix.configuration }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CMP: ${{ matrix.cmp }}
+      BCFG: ${{ matrix.configuration }}
+      BASE: ${{ matrix.base }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Job names also name artifacts, character limitations apply
+        include:
+          - os: ubuntu-20.04
+            cmp: gcc
+            configuration: default
+            base: "7.0"
+
+          - os: ubuntu-20.04
+            cmp: gcc
+            configuration: static
+            base: "7.0"
+
+          - os: ubuntu-20.04
+            cmp: gcc
+            configuration: default
+            base: "3.15"
+
+          - os: ubuntu-20.04
+            cmp: gcc
+            configuration: static
+            base: "3.15"
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: "apt-get install"
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install libreadline6-dev libncurses5-dev perl \
+          libgraphicsmagick++-dev libhdf5-dev libjpeg-dev libnetcdf-dev libtiff-dev libxml2-dev libz-dev \
+          pkg-config
+
+    - name: Prepare and compile EPICS dependencies
+      run: python .ci/cue.py prepare
+
+    - name: Build main module
+      run: python .ci/cue.py build
+
+    - name: Run main module tests
+      run: python .ci/cue.py -T 30M test
+
+    - name: Upload tapfiles Artifact
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: tapfiles-${{ matrix.os }}-${{ matrix.base }}-${{ matrix.cmp }}-${{ matrix.configuration }}
+        path: '**/O.*/*.tap'
+        if-no-files-found: ignore
+
+    - name: Collect and show test results
+      if: ${{ always() }}
+      run: python .ci/cue.py -T 5M test-results
