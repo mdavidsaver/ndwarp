@@ -16,8 +16,6 @@
 
 namespace {
 
-NDArrayPool *pool;
-
 template<typename LHS, typename RHS>
 void testEqualx(const char *nlhs, const char *nrhs, const LHS& lhs, const RHS& rhs)
 {
@@ -114,18 +112,23 @@ void testRotate()
     };
 
     testDiag("In %s", __FUNCTION__);
-    NDPluginWarp *P = new NDPluginWarp((name+"warp").c_str(), 2, 1, "", 0, 10, 1024, 0, 0);
+    NDPluginWarp *P = new NDPluginWarp((name+"warp").c_str(), 2, 1, "", 0, 10, 0, 0, 0);
     ArrayCapture L(P->portName);
 
     {
         asynInt32Client CX(P->portName, 0, NDWarpCenterXString),
-                        CY(P->portName, 0, NDWarpCenterYString);
+                        CY(P->portName, 0, NDWarpCenterYString),
+                        CB(P->portName, 0, NDArrayCallbacksString);
 
         CX.write(1);
         CY.write(1);
+        CB.write(1);
     }
 
     size_t dim[2] = {3, 3};
+
+    NDArrayPool *pool = new NDArrayPool(P, 0);
+    // don't bother to delete 'pool', it doesn't cleanup after itself anyway (no dtor)
 
     ndarray_ptr inp(pool->alloc(2, dim, NDUInt16, 0, NULL));
     memcpy(inp->pData, input, sizeof(input));
@@ -223,9 +226,7 @@ void testRotate()
 
 MAIN(testwarp)
 {
-    testPlan(0);
-    pool = new NDArrayPool(5, 1024);
+    testPlan(18);
     testRotate();
-    // don't bother to delete 'pool', it doesn't cleanup after itself anyway (no dtor)
     return testDone();
 }

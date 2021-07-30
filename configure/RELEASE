@@ -22,22 +22,25 @@
 TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
 
 # Optional (for executable in testApp)
-ARAVISGIGE=$(EPICS_BASE)
+#ARAVISGIGE=$(EPICS_BASE)
 #ADEXAMPLE=$(EPICS_BASE)
-DEVIOCSTATS=$(EPICS_BASE)
-AUTOSAVE=$(EPICS_BASE)
-CAPUTLOG=$(EPICS_BASE)
-RECSYNC=$(EPICS_BASE)
+#DEVIOCSTATS=$(EPICS_BASE)
+#AUTOSAVE=$(EPICS_BASE)
+#CAPUTLOG=$(EPICS_BASE)
+#RECSYNC=$(EPICS_BASE)
 
 # required
-ADCORE=$(EPICS_BASE)
-ASYN=$(EPICS_BASE)
-BUSY=$(EPICS_BASE)
-CALC=$(EPICS_BASE)
+#ADCORE=$(EPICS_BASE)
+#ASYN=$(EPICS_BASE)
+#BUSY=$(EPICS_BASE)
+#CALC=$(EPICS_BASE)
 
 # EPICS_BASE usually appears last so other apps can override stuff:
-EPICS_BASE=/usr/lib/epics
+#EPICS_BASE=/usr/lib/epics
 
 # Set RULES here if you want to take build rules from somewhere
 # other than EPICS_BASE:
 #RULES=/path/to/epics/support/module/rules/x-y
+
+-include $(TOP)/RELEASE.local
+-include $(TOP)/configure/RELEASE.local

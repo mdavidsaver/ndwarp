@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <epicsTypes.h>
+#include <shareLib.h>
 
 #include "NDPluginDriver.h"
 

@@ -9,6 +9,7 @@ include $(TOP)/configure/CONFIG
 USR_CPPFLAGS += -I$(TOP)/warpApp/src
 
 TESTPROD_HOST += testwarp
+TESTS += testwarp
 
 testwarp_SRCS += testwarp.cpp
 testwarp_LIBS += NDPluginWarp NDPlugin ADBase asyn Com
@@ -42,7 +43,7 @@ endif
 # used by commonDriverMakefile
 PROD_NAME = test
 
-include $(ADCORE)/configure/commonDriverMakefile
+include $(firstword $(wildcard $(ADCORE)/configure/commonDriverMakefile $(ADCORE)/ADApp/commonDriverMakefile))
 
 ifneq ($(CAPUTLOG),)
 test_DBD += caPutLog.dbd
@@ -53,6 +54,8 @@ ifneq ($(RECSYNC),)
 test_DBD += reccaster.dbd
 test_LIBS += reccaster
 endif
+
+TESTSCRIPTS_HOST += $(TESTS:%=%.t)
 
 #===========================
 

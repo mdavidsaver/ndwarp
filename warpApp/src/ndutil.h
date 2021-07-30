@@ -123,6 +123,7 @@ struct aPDUnlock {
 typedef epicsGuard<asynPortDriver> aPDLock;
 
 // allow uninitialized array of same type and shape as 'proto'
+inline
 NDArray* cloneArray(NDArrayPool *pool, NDArray *proto)
 {
     size_t dims[ND_ARRAY_MAX_DIMS];

@@ -31,11 +31,21 @@ NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCall
              const char *NDArrayPort, int NDArrayAddr,
              int maxBuffers, size_t maxMemory,
              int priority, int stackSize)
-    : NDPluginDriver(portName, queueSize, blockingCallbacks,
-                   NDArrayPort, NDArrayAddr, 1, NUM_NDPLUGIN_WARP_PARAMS, maxBuffers, maxMemory,
-                   asynInt32ArrayMask | asynFloat64ArrayMask | asynGenericPointerMask,
-                   asynInt32ArrayMask | asynFloat64ArrayMask | asynGenericPointerMask,
-                   0, 1, priority, stackSize)
+    : NDPluginDriver(portName,
+                     queueSize,
+                     blockingCallbacks,
+                     NDArrayPort,
+                     NDArrayAddr,
+                     1, // maxAddr
+                     maxBuffers,
+                     maxMemory,
+                     asynInt32ArrayMask | asynFloat64ArrayMask | asynGenericPointerMask,
+                     asynInt32ArrayMask | asynFloat64ArrayMask | asynGenericPointerMask,
+                     0, // asynFlags
+                     1, // autoConnect
+                     priority,
+                     stackSize,
+                     1) // maxThreads
 {
     lastinfo.nElements = (size_t)-1; // spoil
 
@@ -96,7 +106,7 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
 {
     // pArray is borrowed reference.  Caller will release()
 
-    NDPluginDriver::processCallbacks(pArray);
+    NDPluginDriver::beginProcessCallbacks(pArray);
 
     NDArrayInfo info;
     (void)pArray->getInfo(&info);
@@ -115,6 +125,8 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
     CASE(UInt16)
     CASE(Int32)
     CASE(UInt32)
+    CASE(Int64)
+    CASE(UInt64)
     CASE(Float32)
     CASE(Float64)
 #undef CASE
@@ -158,6 +170,8 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
             CASE(UInt16)
             CASE(Int32)
             CASE(UInt32)
+            CASE(Int64)
+            CASE(UInt64)
             CASE(Float32)
             CASE(Float64)
 #undef CASE
@@ -204,8 +218,7 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
         setDoubleParam(NDWarpRunTime, delta);
 
         if(output.get()) {
-            aPDUnlock U(*this);
-            doCallbacksGenericPointer(output.get(), NDArrayData, 0);
+            NDPluginDriver::endProcessCallbacks(output.release(), false, true);
         }
 
         callParamCallbacks();

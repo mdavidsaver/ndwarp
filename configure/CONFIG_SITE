@@ -41,8 +41,3 @@ CHECK_RELEASE = YES
 ## To extend the search path used by pkg-config
 ## add directories with .pc files.
 #export PKG_CONFIG_PATH=/user/davidsav/aravis/build/usr/lib/pkgconfig/
-
-# used by AD commonDriverMakefile
-WITH_TIFF=YES
-WITH_ZLIB=YES
-WITH_GRAPHICSMAGICK=YES
