@@ -3,7 +3,16 @@
  * State University (c) Copyright 2016.
  *
  * Author: Michael Davidsaver <mdavidsaver@gmail.com>
+ * 
+ * #############################################################
+ * #############################################################
+ * 
+ * Contribution RGB and AutoResize 
+ * Author: Guilherme Rodrigues de Lima
+ * Email: guilherme.lima@lnls.br 
+ * Date: 06/22/2023
  */
+
 #include <algorithm>
 #include <limits>
 
@@ -13,9 +22,6 @@
 #include <epicsExport.h>
 
 #include <NDPluginWarp.h>
-
-// pi/180
-#define PI_180 0.017453292519943295
 
 static
 bool sameShape(const NDArrayInfo& lhs, const NDArrayInfo& rhs)
@@ -62,6 +68,8 @@ NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCall
     createParam(NDWarpCenterXString, asynParamInt32, &NDWarpCenterX);
     createParam(NDWarpCenterYString, asynParamInt32, &NDWarpCenterY);
 
+    createParam(NDWarpAutoResizeString, asynParamInt32, &NDWarpAutoResize); // Auto Resize Mode
+
     setStringParam(NDPluginDriverPluginType, "NDPluginWarp");
 
     setDoubleParam(NDWarpFactorX, 0.0); // initialize w/ no-op
@@ -69,6 +77,7 @@ NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCall
     setDoubleParam(NDWarpAngle, 0.0);
     setIntegerParam(NDWarpCenterX, 0);
     setIntegerParam(NDWarpCenterY, 0);
+    setIntegerParam(NDWarpAutoResize, 0);
 }
 
 NDPluginWarp::~NDPluginWarp() {
@@ -112,23 +121,13 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
     NDArrayInfo info;
     (void)pArray->getInfo(&info);
 
-    /*
-    if(pArray->ndims!=2 || info.xSize==0 || info.ySize==0) {
+    if(info.colorMode == 1 || info.colorMode > 4 || info.xSize==0 || info.ySize==0) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:: 2D non-empty expected",
-                  this->portName);
-        if (test == 0) {
-            printf("ndmins = %i\n",pArray->ndims);
-            printf("xSize = %i\n",info.xSize);
-            printf("ySize = %i\n",info.ySize);
-            printf("colorSize = %i\n",info.colorSize);
-            printf("nElements = %i\n",info.nElements);
-            printf("colorMode = %i\n",info.colorMode);
-        }
-
+                  this->portName);                 
         return;
     }
-    */
+
     switch(pArray->dataType) {
 #define CASE(TYPE) case ND ## TYPE:
     CASE(Int8)
@@ -155,13 +154,17 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
         epicsTimeStamp before;
         epicsTimeGetCurrent(&before);
 
-        if(!sameShape(info, lastinfo)) {
+        int autoresize=0;
+        getIntegerParam(NDWarpAutoResize, &autoresize);
+        
+        if(!sameShape(info, lastinfo) || lastautoresize != autoresize) {
             asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s: input shape changes, recompute mapping\n", this->portName);
 
             lastinfo = info;
+            lastautoresize = autoresize;
             recalculate_transform(info);
 
-            assert(mapping.size() == samp_per_pixel*lastinfo.nElements);
+            assert(mapping.size() == samp_per_pixel*AutoResize.nElements);
         }
 
         int outputmode=0;
@@ -172,10 +175,33 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
         if(outputmode==0) {
             // output transformed image
 
-            output.reset(cloneArray(pNDArrayPool, pArray));
+            //output.reset(cloneArray(pNDArrayPool, pArray));
+
+            size_t dims[ND_ARRAY_MAX_DIMS];
+            if (lastinfo.colorMode == 0) {
+                dims[0] = AutoResize.xSize;
+                dims[1] = AutoResize.ySize;
+            } 
+            else if (lastinfo.colorMode == 2) {
+                dims[0] = 3; 
+                dims[1] = AutoResize.xSize;
+                dims[2] = AutoResize.ySize;
+            }
+            else if (lastinfo.colorMode == 3) {
+                dims[0] = AutoResize.xSize;
+                dims[1] = 3; 
+                dims[2] = AutoResize.ySize;
+            } 
+            else if (lastinfo.colorMode == 4) {
+                dims[0] = AutoResize.xSize;
+                dims[1] = AutoResize.ySize;
+                dims[2] = 3; 
+            }
+
+            output.reset(pNDArrayPool->alloc(pArray->ndims, dims, pArray->dataType, 0, NULL));
 
             switch(pArray->dataType) {
-#define CASE(TYPE) case ND ## TYPE: warpit<epics ## TYPE>(pArray, output.get(), &mapping[0], lastinfo.nElements, samp_per_pixel); break;
+#define CASE(TYPE) case ND ## TYPE: warpit<epics ## TYPE>(pArray, output.get(), &mapping[0], AutoResize.nElements, samp_per_pixel); break;
             CASE(Int8)
             CASE(UInt8)
             CASE(Int16)
@@ -325,28 +351,35 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     default:
         throw std::runtime_error("Invalid interpolation mode");
     }
-    mapping.resize(samp_per_pixel*info.nElements);
+
+    getDoubleParam(NDWarpAngle, &angle);
+
+    if (lastautoresize == 1) {
+        AutoResize.resize(angle,lastinfo);
+    } else {
+        AutoResize.resize(0,lastinfo);
+    }
+
+    mapping.resize(samp_per_pixel*AutoResize.nElements);
 
     Mapping M;
-    M.resize(info);
+    M.resize(AutoResize.xSize,AutoResize.ySize);
 
     fill_mapping(M);
 
     // sanitize mapping
     // replace outside range [0, size-1] with NaN
     for(size_t j=0; j<M.sizey(); j++) {
-
         for(size_t i=0; i<M.sizex(); i++) {
             double x=M.x(i,j), y=M.y(i,j);
-
-            if(x>M.sizex()-1 || x<0.0 || !isfinite(x))
+            if(x>lastinfo.xSize-1 || x<0.0 || !isfinite(x)) {
                 M.x(i,j) = std::numeric_limits<double>::quiet_NaN();
-
-            if(y>M.sizey()-1 || y<0.0 || !isfinite(y))
+            }
+            if(y>lastinfo.ySize-1 || y<0.0 || !isfinite(y)) {
                 M.y(i,j) = std::numeric_limits<double>::quiet_NaN();
+            }
         }
     }
-
     // interpolate and collapse user 2D Mapping to 1D 'mapping' (from offset to offset)
 
     Sample * const S = &mapping[0];
@@ -354,52 +387,39 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     switch(cur_mode) {
     case Nearest: {
         assert(samp_per_pixel==1);
-        printf("colorMode = %i \n",lastinfo.colorMode);
-        printf("nElements = %i \n",lastinfo.nElements);
         for(size_t j=0; j<M.sizey(); j++) {
-
             for(size_t i=0; i<M.sizex(); i++) {
+
                 if (lastinfo.colorMode == 0) {
-                    const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride;
+                    const size_t Ooffset = i*AutoResize.xStride + j*AutoResize.yStride;
                     Sample * const SX = &S[Ooffset];
                     double x=round(M.x(i,j)), y=round(M.y(i,j));
-                    const size_t Ioffset = x*lastinfo.xStride
-                                        + y*lastinfo.yStride;
+                    const size_t Ioffset = x*lastinfo.xStride + y*lastinfo.yStride;
                     SX->weight = 1.0;
                     SX->index = Ioffset;
                     SX->valid = isfinite(x) && isfinite(y);
+
                 }
-                else if (lastinfo.colorMode == 2) {
+                else {
                     for(size_t k=0; k<3; k++) {
-                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k;
-                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
-                        Sample * const SX = &S[Ooffset];
+                        size_t Ooffset;
+                        size_t Ioffset;
                         double x=round(M.x(i,j)), y=round(M.y(i,j));
-                        const size_t Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k;
-                        SX->weight = 1.0;
-                        SX->index = Ioffset;
-                        SX->valid = isfinite(x) && isfinite(y);
-                    }
-                }
-                else if (lastinfo.colorMode == 3) {
-                    for(size_t k=0; k<3; k++) {
-                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k*lastinfo.xSize;
-                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
+                        switch(lastinfo.colorMode) {
+                            case 2: {
+                                Ooffset = i*AutoResize.xStride + j*AutoResize.yStride + k;
+                                Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k;
+                            } break;
+                            case 3: {
+                                Ooffset = i*AutoResize.xStride + j*AutoResize.yStride + k*AutoResize.xSize;
+                                Ioffset = x*lastinfo.xStride + y*lastinfo.yStride + k*lastinfo.xSize;
+                            } break;
+                            case 4: {
+                                Ooffset = i*AutoResize.xStride + j*AutoResize.yStride + k*AutoResize.xSize*AutoResize.ySize;
+                                Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                            } break;
+                        }
                         Sample * const SX = &S[Ooffset];
-                        double x=round(M.x(i,j)), y=round(M.y(i,j));
-                        const size_t Ioffset = x*lastinfo.xStride + y*lastinfo.yStride + k*lastinfo.xSize;
-                        SX->weight = 1.0;
-                        SX->index = Ioffset;
-                        SX->valid = isfinite(x) && isfinite(y);
-                    }
-                }
-                else if (lastinfo.colorMode == 4) {
-                    for(size_t k=0; k<3; k++) {
-                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
-                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
-                        Sample * const SX = &S[Ooffset];
-                        double x=round(M.x(i,j)), y=round(M.y(i,j));
-                        const size_t Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
                         SX->weight = 1.0;
                         SX->index = Ioffset;
                         SX->valid = isfinite(x) && isfinite(y);
@@ -409,40 +429,95 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
         }
     }
         break;
+
     case Bilinear: {
         assert(samp_per_pixel==4);
         for(size_t j=0; j<M.sizey(); j++) {
-
             for(size_t i=0; i<M.sizex(); i++) {
-                const size_t Ooffset = 4*(i*lastinfo.xStride + j*lastinfo.yStride);
-                Sample * const SX = &S[Ooffset];
 
-                double x=M.x(i,j), y=M.y(i,j),
-                       fx=floor(x), fy=floor(y),
-                       cx=ceil(x), cy=ceil(y),
-                       xfact = cx==fx ? 0.0 : (x-fx)/(cx-fx),
-                       yfact = cy==fy ? 0.0 : (y-fy)/(cy-fy);
-                bool valid = isfinite(x) && isfinite(y);
+                if (lastinfo.colorMode == 0) {
+                    const size_t Ooffset = 4*(i*AutoResize.xStride + j*AutoResize.yStride);
+                    Sample * const SX = &S[Ooffset];
 
-                // for degenerate cases (f_==c_) then
-                // _fact=0.0 or 1.0 gives the same result.
-                // we choose 0.0 arbitrarily
+                    double x=M.x(i,j), y=M.y(i,j),
+                        fx=floor(x), fy=floor(y),
+                        cx=ceil(x), cy=ceil(y),
+                        xfact = cx==fx ? 0.0 : (x-fx)/(cx-fx),
+                        yfact = cy==fy ? 0.0 : (y-fy)/(cy-fy);
+                    bool valid = isfinite(x) && isfinite(y);
 
-                SX[0].weight = (1.0-xfact)*(1.0-yfact);
-                SX[0].index  = fx*lastinfo.xStride + fy*lastinfo.yStride;
-                SX[0].valid  = valid;
+                    // for degenerate cases (f_==c_) then
+                    // _fact=0.0 or 1.0 gives the same result.
+                    // we choose 0.0 arbitrarily
 
-                SX[1].weight = xfact*(1.0-yfact);
-                SX[1].index  = cx*lastinfo.xStride + fy*lastinfo.yStride;
-                SX[1].valid  = valid;
+                    SX[0].weight = (1.0-xfact)*(1.0-yfact);
+                    SX[0].index  = fx*lastinfo.xStride + fy*lastinfo.yStride;
+                    SX[0].valid  = valid;
 
-                SX[2].weight = (1.0-xfact)*yfact;
-                SX[2].index  = fx*lastinfo.xStride + cy*lastinfo.yStride;
-                SX[2].valid  = valid;
+                    SX[1].weight = xfact*(1.0-yfact);
+                    SX[1].index  = cx*lastinfo.xStride + fy*lastinfo.yStride;
+                    SX[1].valid  = valid;
 
-                SX[3].weight = xfact*yfact;
-                SX[3].index  = cx*lastinfo.xStride + cy*lastinfo.yStride;
-                SX[3].valid  = valid;
+                    SX[2].weight = (1.0-xfact)*yfact;
+                    SX[2].index  = fx*lastinfo.xStride + cy*lastinfo.yStride;
+                    SX[2].valid  = valid;
+
+                    SX[3].weight = xfact*yfact;
+                    SX[3].index  = cx*lastinfo.xStride + cy*lastinfo.yStride;
+                    SX[3].valid  = valid;
+                }
+
+                else {
+                    for(size_t k=0; k<3; k++) {
+                        size_t Ooffset;
+                        size_t Ioffset[4];
+
+                        double x=M.x(i,j), y=M.y(i,j),
+                            fx=floor(x), fy=floor(y),
+                            cx=ceil(x), cy=ceil(y),
+                            xfact = cx==fx ? 0.0 : (x-fx)/(cx-fx),
+                            yfact = cy==fy ? 0.0 : (y-fy)/(cy-fy);
+                        bool valid = isfinite(x) && isfinite(y);
+
+                        switch(lastinfo.colorMode) {
+                            case 2: {
+                                Ooffset = 4*(i*AutoResize.xStride + j*AutoResize.yStride + k);
+                                Ioffset[0]  = fx*lastinfo.xStride + fy*lastinfo.yStride + k;
+                                Ioffset[1]  = cx*lastinfo.xStride + fy*lastinfo.yStride + k;
+                                Ioffset[2]  = fx*lastinfo.xStride + cy*lastinfo.yStride + k;
+                                Ioffset[3]  = cx*lastinfo.xStride + cy*lastinfo.yStride + k;
+                            } break;
+                            case 3: {
+                                Ooffset = 4*(i*AutoResize.xStride + j*AutoResize.yStride + k*AutoResize.xSize);
+                                Ioffset[0]  = fx*lastinfo.xStride + fy*lastinfo.yStride + k*lastinfo.xSize;
+                                Ioffset[1]  = cx*lastinfo.xStride + fy*lastinfo.yStride + k*lastinfo.xSize;
+                                Ioffset[2]  = fx*lastinfo.xStride + cy*lastinfo.yStride + k*lastinfo.xSize;
+                                Ioffset[3]  = cx*lastinfo.xStride + cy*lastinfo.yStride + k*lastinfo.xSize;
+                            } break;
+                            case 4: {
+                                Ooffset = 4*(i*AutoResize.xStride + j*AutoResize.yStride + k*AutoResize.xSize*AutoResize.ySize);
+                                Ioffset[0]  = fx*lastinfo.xStride + fy*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                                Ioffset[1]  = cx*lastinfo.xStride + fy*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                                Ioffset[2]  = fx*lastinfo.xStride + cy*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                                Ioffset[3]  = cx*lastinfo.xStride + cy*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                            } break;
+                        }
+                        
+                        Sample * const SX = &S[Ooffset];
+                        SX[0].weight = (1.0-xfact)*(1.0-yfact);
+                        SX[0].index  = Ioffset[0];
+                        SX[0].valid  = valid;
+                        SX[1].weight = xfact*(1.0-yfact);
+                        SX[1].index  = Ioffset[1];
+                        SX[1].valid  = valid;
+                        SX[2].weight = (1.0-xfact)*yfact;
+                        SX[2].index  = Ioffset[2];
+                        SX[2].valid  = valid;
+                        SX[3].weight = xfact*yfact;
+                        SX[3].index  = Ioffset[3];
+                        SX[3].valid  = valid;
+                    }
+                }
             }
         }
     }
@@ -454,15 +529,20 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
 
 void NDPluginWarp::fill_mapping(Mapping &M)
 {
-    double angle = 0.0;
     double factor[2] = {0.0, 0.0};
     int center[2] = {0, 0};
 
-    getDoubleParam(NDWarpAngle, &angle);
-    getIntegerParam(NDWarpCenterX, &center[0]);
-    getIntegerParam(NDWarpCenterY, &center[1]);
     getDoubleParam(NDWarpFactorX, &factor[0]);
     getDoubleParam(NDWarpFactorY, &factor[1]);
+
+    if (lastautoresize == 0) {
+        getIntegerParam(NDWarpCenterX, &center[0]);
+        getIntegerParam(NDWarpCenterY, &center[1]);
+    } else {
+        center[0] = AutoResize.xSize/2;
+        center[1] = AutoResize.ySize/2;
+    }
+
 //    printf("# fill_mapping. center: [%d, %d] angle: %f F: [%f, %f]\n",
 //           center[0], center[1], angle, factor[0], factor[1]);
 
@@ -470,8 +550,8 @@ void NDPluginWarp::fill_mapping(Mapping &M)
 
     // iterate through output image coordinates.
     // fill in each with input image coordinate
-    for(epicsUInt16 x=0; x<M.sizex(); x++) {
-        for(epicsUInt16 y=0; y<M.sizey(); y++) {
+    for(epicsUInt16 y=0; y<M.sizey(); y++) {
+        for(epicsUInt16 x=0; x<M.sizex(); x++) {
             double xc = x-center[0];
             double yc = y-center[1];
 
@@ -485,10 +565,8 @@ void NDPluginWarp::fill_mapping(Mapping &M)
             xc += xc*xc*factor[0]   + xc*yc*factor[1];
             yc += yc*temp*factor[0] + yc*yc*factor[1];
 
-            M.x(x,y) = xc+center[0];
-            M.y(x,y) = yc+center[1];
-
-            //printf("M.x(%i,%i) = %f e M.y(%i,%i) = %f \n",x,y,xc,x,y,yc);
+            M.x(x,y) = xc+center[0] - (AutoResize.xSize-lastinfo.xSize)/2;
+            M.y(x,y) = yc+center[1] - (AutoResize.ySize-lastinfo.ySize)/2;
         }
     }
 }
