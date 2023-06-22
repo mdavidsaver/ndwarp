@@ -1,4 +1,4 @@
-name: ADAravis
+name: NDWarp
 
 # Trigger on pushes and PRs to any branch
 on:
@@ -25,27 +25,27 @@ jobs:
       matrix:
         # Job names also name artifacts, character limitations apply
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             cmp: gcc
             configuration: default
             base: "7.0"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             cmp: gcc
             configuration: static
             base: "7.0"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             cmp: gcc
             configuration: default
             base: "3.15"
 
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             cmp: gcc
             configuration: static
             base: "3.15"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
 
@@ -54,7 +54,7 @@ jobs:
         sudo apt-get update
         sudo apt-get -y install libreadline6-dev libncurses5-dev perl \
           libgraphicsmagick++-dev libhdf5-dev libjpeg-dev libnetcdf-dev libtiff-dev libxml2-dev libz-dev \
-          pkg-config
+          pkg-config libtirpc-dev
 
     - name: Prepare and compile EPICS dependencies
       run: python .ci/cue.py prepare
@@ -67,7 +67,7 @@ jobs:
 
     - name: Upload tapfiles Artifact
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: tapfiles-${{ matrix.os }}-${{ matrix.base }}-${{ matrix.cmp }}-${{ matrix.configuration }}
         path: '**/O.*/*.tap'

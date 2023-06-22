@@ -7,6 +7,7 @@ BASE_VARNAME=EPICS_BASE
 BASE_RECURSIVE=no
 
 ASYN_REPOOWNER=epics-modules
+ASYN_HOOK=.ci-local/asyn-config.sh
 
 ADCORE_REPOOWNER=areaDetector
 ADCORE_HOOK=.ci-local/adcore-config.sh
