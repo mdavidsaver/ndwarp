@@ -6,7 +6,8 @@ BASE_REPOOWNER=epics-base
 BASE_VARNAME=EPICS_BASE
 BASE_RECURSIVE=no
 
-ASYN_REPOOWNER=epics-modules
+ASYN=detect-tirpc
+ASYN_REPOOWNER=mdavidsaver
 
 ADCORE_REPOOWNER=areaDetector
 ADCORE_HOOK=.ci-local/adcore-config.sh
