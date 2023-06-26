@@ -47,8 +47,7 @@ public:
     virtual void processCallbacks(NDArray *pArray);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-
-
+    
     struct Mapping {
         Mapping() :yStride(0) {}
         void resize(const NDArrayInfo_t& info) {
@@ -89,7 +88,7 @@ public:
 
     unsigned samp_per_pixel;
     typedef std::vector<Sample> mapping_t;
-    mapping_t mapping; // size() is samp_per_pixel*listinfo.nElements
+    mapping_t mapping; // size() is samp_per_pixel*lastinfo.nElements
 
     NDArrayInfo lastinfo;
     Mapping lastmap;

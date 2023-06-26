@@ -24,7 +24,8 @@ bool sameShape(const NDArrayInfo& lhs, const NDArrayInfo& rhs)
     return lhs.nElements==rhs.nElements
             && lhs.xSize==rhs.xSize
             && lhs.ySize==rhs.ySize
-            && lhs.colorSize==rhs.colorSize;
+            && lhs.colorSize==rhs.colorSize
+            && lhs.colorMode==rhs.colorMode;
 }
 
 NDPluginWarp::NDPluginWarp(const char *portName, int queueSize, int blockingCallbacks,
@@ -111,12 +112,23 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
     NDArrayInfo info;
     (void)pArray->getInfo(&info);
 
+    /*
     if(pArray->ndims!=2 || info.xSize==0 || info.ySize==0) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s:: 2D non-empty expected",
                   this->portName);
+        if (test == 0) {
+            printf("ndmins = %i\n",pArray->ndims);
+            printf("xSize = %i\n",info.xSize);
+            printf("ySize = %i\n",info.ySize);
+            printf("colorSize = %i\n",info.colorSize);
+            printf("nElements = %i\n",info.nElements);
+            printf("colorMode = %i\n",info.colorMode);
+        }
+
         return;
     }
+    */
     switch(pArray->dataType) {
 #define CASE(TYPE) case ND ## TYPE:
     CASE(Int8)
@@ -188,7 +200,7 @@ NDPluginWarp::processCallbacks(NDArray *pArray)
             output->getInfo(&info);
 
             for(size_t oy=0; oy<lastmap.sizey(); oy++) {
-                for(size_t ox=0; ox<lastmap.sizey(); ox++) {
+                for(size_t ox=0; ox<lastmap.sizex(); ox++) {
                     double ix = lastmap.x(ox, oy),
                            iy = lastmap.y(ox, oy),
                            dx = ox-ix,
@@ -342,19 +354,57 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     switch(cur_mode) {
     case Nearest: {
         assert(samp_per_pixel==1);
+        printf("colorMode = %i \n",lastinfo.colorMode);
+        printf("nElements = %i \n",lastinfo.nElements);
         for(size_t j=0; j<M.sizey(); j++) {
 
             for(size_t i=0; i<M.sizex(); i++) {
-                const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride;
-                Sample * const SX = &S[Ooffset];
-                double x=round(M.x(i,j)), y=round(M.y(i,j));
-
-                const size_t Ioffset = x*lastinfo.xStride
-                                     + y*lastinfo.yStride;
-
-                SX->weight = 1.0;
-                SX->index = Ioffset;
-                SX->valid = isfinite(x) && isfinite(y);
+                if (lastinfo.colorMode == 0) {
+                    const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride;
+                    Sample * const SX = &S[Ooffset];
+                    double x=round(M.x(i,j)), y=round(M.y(i,j));
+                    const size_t Ioffset = x*lastinfo.xStride
+                                        + y*lastinfo.yStride;
+                    SX->weight = 1.0;
+                    SX->index = Ioffset;
+                    SX->valid = isfinite(x) && isfinite(y);
+                }
+                else if (lastinfo.colorMode == 2) {
+                    for(size_t k=0; k<3; k++) {
+                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k;
+                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
+                        Sample * const SX = &S[Ooffset];
+                        double x=round(M.x(i,j)), y=round(M.y(i,j));
+                        const size_t Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k;
+                        SX->weight = 1.0;
+                        SX->index = Ioffset;
+                        SX->valid = isfinite(x) && isfinite(y);
+                    }
+                }
+                else if (lastinfo.colorMode == 3) {
+                    for(size_t k=0; k<3; k++) {
+                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k*lastinfo.xSize;
+                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
+                        Sample * const SX = &S[Ooffset];
+                        double x=round(M.x(i,j)), y=round(M.y(i,j));
+                        const size_t Ioffset = x*lastinfo.xStride + y*lastinfo.yStride + k*lastinfo.xSize;
+                        SX->weight = 1.0;
+                        SX->index = Ioffset;
+                        SX->valid = isfinite(x) && isfinite(y);
+                    }
+                }
+                else if (lastinfo.colorMode == 4) {
+                    for(size_t k=0; k<3; k++) {
+                        const size_t Ooffset = i*lastinfo.xStride + j*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                        //printf("x=%i y=%i pos=%i\n",i,j,Ooffset);
+                        Sample * const SX = &S[Ooffset];
+                        double x=round(M.x(i,j)), y=round(M.y(i,j));
+                        const size_t Ioffset = x*lastinfo.xStride+y*lastinfo.yStride + k*lastinfo.xSize*lastinfo.ySize;
+                        SX->weight = 1.0;
+                        SX->index = Ioffset;
+                        SX->valid = isfinite(x) && isfinite(y);
+                    }
+                }
             }
         }
     }
@@ -437,6 +487,8 @@ void NDPluginWarp::fill_mapping(Mapping &M)
 
             M.x(x,y) = xc+center[0];
             M.y(x,y) = yc+center[1];
+
+            //printf("M.x(%i,%i) = %f e M.y(%i,%i) = %f \n",x,y,xc,x,y,yc);
         }
     }
 }
