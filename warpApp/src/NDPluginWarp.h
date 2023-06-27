@@ -97,19 +97,19 @@ public:
             if (info.colorMode == 0) {
                 nElements = xSize * ySize;
                 xStride = 1;
-                yStride = ySize;
+                yStride = xSize;
             } else if (info.colorMode == 2) {
                 nElements = xSize * ySize * 3;
                 xStride = 3;
-                yStride = ySize*3;
+                yStride = xSize*3;
             } else if (info.colorMode == 3) {
                 nElements = xSize * ySize * 3;
                 xStride = 1;
-                yStride = ySize*3;
+                yStride = xSize*3;
             } else if (info.colorMode == 4) {
                 nElements = xSize * ySize * 3;
                 xStride = 1;
-                yStride = ySize;
+                yStride = xSize;
             }
         }
         size_t xSize;
