@@ -30,8 +30,7 @@
 
 #define NDWarpAutoResizeString    "WARP_AUTORESIZE_MODE"
 
-// pi/180
-#define PI_180 0.017453292519943295
+#define PI_180 0.017453292519943295 // pi/180
 
 /** Generic coordinate transformation
  *
@@ -89,39 +88,16 @@ public:
     };
 
     struct {
-        void resize(double a, const NDArrayInfo& info) {
-
-            xSize = round(cos(abs(a)*PI_180)*info.xSize + sin(abs(a)*PI_180)*info.ySize);
-            ySize = round(cos(abs(a)*PI_180)*info.ySize + sin(abs(a)*PI_180)*info.xSize);
-
-            if (info.colorMode == 0) {
-                nElements = xSize * ySize;
-                xStride = 1;
-                yStride = xSize;
-            } else if (info.colorMode == 2) {
-                nElements = xSize * ySize * 3;
-                xStride = 3;
-                yStride = xSize*3;
-            } else if (info.colorMode == 3) {
-                nElements = xSize * ySize * 3;
-                xStride = 1;
-                yStride = xSize*3;
-            } else if (info.colorMode == 4) {
-                nElements = xSize * ySize * 3;
-                xStride = 1;
-                yStride = xSize;
-            }
-        }
         size_t xSize;
         size_t ySize;
         size_t nElements;
         size_t xStride;
         size_t yStride;
-
     } AutoResize;
 
     void recalculate_transform(const NDArrayInfo &info);
     void fill_mapping(Mapping &M);
+    void auto_resize(double a);
 
     unsigned samp_per_pixel;
     typedef std::vector<Sample> mapping_t;

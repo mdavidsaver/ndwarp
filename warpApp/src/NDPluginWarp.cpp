@@ -337,6 +337,35 @@ asynStatus NDPluginWarp::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return ret;
 }
 
+void NDPluginWarp::auto_resize(double a) {
+
+    AutoResize.xSize = round(cos(abs(a)*PI_180)*lastinfo.xSize + sin(abs(a)*PI_180)*lastinfo.ySize);
+    AutoResize.ySize = round(cos(abs(a)*PI_180)*lastinfo.ySize + sin(abs(a)*PI_180)*lastinfo.xSize);
+
+    switch(lastinfo.colorMode) {
+        case 0: {
+            AutoResize.nElements = AutoResize.xSize * AutoResize.ySize;
+            AutoResize.xStride = 1;
+            AutoResize.yStride = AutoResize.xSize;
+        } break;
+        case 2: {
+            AutoResize.nElements = AutoResize.xSize * AutoResize.ySize * 3;
+            AutoResize.xStride = 3;
+            AutoResize.yStride = AutoResize.xSize*3;
+        } break;
+        case 3: {
+            AutoResize.nElements = AutoResize.xSize * AutoResize.ySize * 3;
+            AutoResize.xStride = 1;
+            AutoResize.yStride = AutoResize.xSize*3;
+        } break;
+        case 4: {
+            AutoResize.nElements = AutoResize.xSize * AutoResize.ySize * 3;
+            AutoResize.xStride = 1;
+            AutoResize.yStride = AutoResize.xSize;
+        } break;
+    }
+}
+
 void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
 {
     int rawmode=0;
@@ -355,9 +384,9 @@ void NDPluginWarp::recalculate_transform(const NDArrayInfo& info)
     getDoubleParam(NDWarpAngle, &angle);
 
     if (lastautoresize == 1) {
-        AutoResize.resize(angle,lastinfo);
+        auto_resize(angle);
     } else {
-        AutoResize.resize(0,lastinfo);
+        auto_resize(0);
     }
 
     mapping.resize(samp_per_pixel*AutoResize.nElements);
