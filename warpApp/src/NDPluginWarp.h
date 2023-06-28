@@ -28,6 +28,10 @@
 #define NDWarpCenterXString    "WARP_CENTER_X"
 #define NDWarpCenterYString    "WARP_CENTER_Y"
 
+#define NDWarpAutoResizeString    "WARP_AUTORESIZE_MODE"
+
+#define PI_180 0.017453292519943295 // pi/180
+
 /** Generic coordinate transformation
  *
  * Holds a mapping from pixel in output image to a weighted sum
@@ -47,16 +51,15 @@ public:
     virtual void processCallbacks(NDArray *pArray);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-
-
+    
     struct Mapping {
         Mapping() :yStride(0) {}
-        void resize(const NDArrayInfo_t& info) {
-            map.resize(2*info.xSize*info.ySize);
+        void resize(const size_t scaleX, const size_t scaleY) {
+            map.resize(2*scaleX*scaleY);
 #ifndef NDEBUG
             std::fill(map.begin(), map.end(), 0);
 #endif
-            yStride = info.xSize;
+            yStride = scaleX;
         }
         double& x(size_t ix, size_t iy) {
             return map[2*(ix+iy*yStride)];
@@ -84,14 +87,25 @@ public:
         Sample() :weight(1.0), index(0) {}
     };
 
+    struct {
+        size_t xSize;
+        size_t ySize;
+        size_t nElements;
+        size_t xStride;
+        size_t yStride;
+    } AutoResize;
+
     void recalculate_transform(const NDArrayInfo &info);
     void fill_mapping(Mapping &M);
+    void auto_resize(double a);
 
     unsigned samp_per_pixel;
     typedef std::vector<Sample> mapping_t;
-    mapping_t mapping; // size() is samp_per_pixel*listinfo.nElements
+    mapping_t mapping; // size() is samp_per_pixel*AutoResize.nElements
 
     NDArrayInfo lastinfo;
+    int lastautoresize;
+    double angle = 0.0;
     Mapping lastmap;
     enum mode_t {
         Nearest, Bilinear,
@@ -106,6 +120,7 @@ public:
     int NDWarpFactorY;
     int NDWarpCenterX;
     int NDWarpCenterY;
+    int NDWarpAutoResize;
 
 #define LAST_NDPLUGIN_WARP_PARAM NDWarpCenterY
 #define NUM_NDPLUGIN_WARP_PARAMS ((int)(&LAST_NDPLUGIN_WARP_PARAM - &FIRST_NDPLUGIN_WARP_PARAM + 1))
